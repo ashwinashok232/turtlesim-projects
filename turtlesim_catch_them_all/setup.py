@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "turtle_spawn_client = turtlesim_catch_them_all.turtle_spawn_client:main"
         ],
     },
 )
