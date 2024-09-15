@@ -4,7 +4,7 @@ from rclpy.node import Node
 from functools import partial
 
 from turtlesim.srv import Spawn
-# import random
+import random
 
 # <service_type> Type of service message eg: AddTwoInts (from example_interfaces.srv)
 # <service_name> Name of service to connect to (must be same as the one that server connected to) eg: add_two_ints
@@ -12,6 +12,7 @@ from turtlesim.srv import Spawn
 class SpawnTurtleNode(Node):
     def __init__(self):
         super().__init__("turtle_spawn_client")
+        self.create_timer(1.0,self.turtle_spawn_timer_callback);
 
     def call_spawn_service(self, x, y, theta):        
         client = self.create_client(Spawn, "spawn")
@@ -35,13 +36,13 @@ class SpawnTurtleNode(Node):
         except Exception as e:
             self.get_logger().error("Service call failed %r" % (e,))
 
-    # def turtle_spawn_timer_callback(self):
-    #     x_min,x_max,y_min,y_max = -10.0, 10.0, -10.0, 10.0
+    def turtle_spawn_timer_callback(self):
+        x_min,x_max,y_min,y_max = -10.0, 10.0, -10.0, 10.0
         
-    #     x_spawn = random.uniform(x_min,x_max)
-    #     y_spawn = random.uniform(y_min,y_max),1
-    #     self.get_logger().info(f"({x_spawn},{y_spawn})")
-    #     # self.call_spawn_service(3.0, 2.0, 0.0)
+        x_spawn = round(random.uniform(x_min,x_max),1)
+        y_spawn = round(random.uniform(y_min,y_max),1)
+        self.get_logger().info(f"({x_spawn},{y_spawn})")
+        # self.call_spawn_service(3.0, 2.0, 0.0)
 
 def main(args=None):
     rclpy.init(args=args)
