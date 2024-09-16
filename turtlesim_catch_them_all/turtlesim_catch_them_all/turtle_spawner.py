@@ -38,7 +38,7 @@ class SpawnTurtleNode(Node):
             self.get_logger().error("Service call failed %r" % (e,))
 
     def turtle_spawn_timer_callback(self):
-        x_min,x_max,y_min,y_max = -10.0, 10.0, -10.0, 10.0
+        x_min,x_max,y_min,y_max = 0.0, 10.0, 0.0, 10.0
         
         x_spawn = round(random.uniform(x_min,x_max),1)
         y_spawn = round(random.uniform(y_min,y_max),1)
