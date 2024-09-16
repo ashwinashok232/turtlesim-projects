@@ -15,7 +15,7 @@ class SpawnTurtleNode(Node):
     def __init__(self):
         super().__init__("turtle_spawner")
         self.spawnCoordinateList_ = []
-        self.create_timer(1.0,self.turtle_spawn_timer_callback)
+        self.create_timer(2.5,self.turtle_spawn_timer_callback)
         self.publisher_ = self.create_publisher(SpawnList, "spawn_coordinates", 10)
         # self.call_spawn_service(3.0, 2.0, 0.0)
 
