@@ -4,6 +4,8 @@ from rclpy.node import Node
 from functools import partial
 
 from turtlesim.srv import Spawn
+from turtlesim_interfaces.msg import SpawnList
+from geometry_msgs.msg import Vector3
 import random
 
 # <service_type> Type of service message eg: AddTwoInts (from example_interfaces.srv)
@@ -12,7 +14,9 @@ import random
 class SpawnTurtleNode(Node):
     def __init__(self):
         super().__init__("turtle_spawner")
+        self.spawnCoordinateList_ = []
         self.create_timer(1.0,self.turtle_spawn_timer_callback)
+        self.publisher_ = self.create_publisher(SpawnList, "spawn_coordinates", 10)
         # self.call_spawn_service(3.0, 2.0, 0.0)
 
     def call_spawn_service(self, x, y, theta):        
@@ -34,6 +38,14 @@ class SpawnTurtleNode(Node):
         try:
             response = future.result()
             self.get_logger().info("x = " + str(x) + "\ny = " + str(y) + "\ntheta = " + str(theta))
+            coord = Vector3()
+            coord.x = x
+            coord.y = y
+            coord.z = 0.0
+            self.spawnCoordinateList_.append(coord)
+            msg = SpawnList()
+            msg.coordinates = self.spawnCoordinateList_
+            self.publisher_.publish(msg)
         except Exception as e:
             self.get_logger().error("Service call failed %r" % (e,))
 
