@@ -16,7 +16,7 @@ class SpawnTurtleNode(Node):
         super().__init__("turtle_spawner")
         self.spawnCoordinateList_ = []
         self.create_timer(2.5,self.turtle_spawn_timer_callback)
-        self.publisher_ = self.create_publisher(SpawnList, "spawn_coordinates", 10)
+        self.publisher_ = self.create_publisher(Vector3, "spawn_coordinates", 10)
         # self.call_spawn_service(3.0, 2.0, 0.0)
 
     def call_spawn_service(self, x, y, theta):        
@@ -42,10 +42,10 @@ class SpawnTurtleNode(Node):
             coord.x = x
             coord.y = y
             coord.z = 0.0
-            self.spawnCoordinateList_.append(coord)
-            msg = SpawnList()
-            msg.coordinates = self.spawnCoordinateList_
-            self.publisher_.publish(msg)
+            # self.spawnCoordinateList_.append(coord)
+            # msg = SpawnList()
+            # msg.coordinates = self.spawnCoordinateList_
+            self.publisher_.publish(coord)
         except Exception as e:
             self.get_logger().error("Service call failed %r" % (e,))
 
@@ -54,7 +54,7 @@ class SpawnTurtleNode(Node):
         
         x_spawn = round(random.uniform(x_min,x_max),1)
         y_spawn = round(random.uniform(y_min,y_max),1)
-        self.get_logger().info(f"({x_spawn},{y_spawn})")
+        # self.get_logger().info(f"({x_spawn},{y_spawn})")
         self.call_spawn_service(x_spawn, y_spawn, 0.0)
 
 def main(args=None):

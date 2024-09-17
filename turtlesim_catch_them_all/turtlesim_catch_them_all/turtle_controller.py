@@ -39,24 +39,43 @@ Some optional arguments you can add:
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist 
- 
+from turtlesim_interfaces.msg import SpawnList
+from geometry_msgs.msg import Vector3
+from turtlesim.msg import Pose
+import math
  
 class TurtleControllerNode(Node): #MODIFY
     def __init__(self):
         super().__init__("turtle_controller")
-        self.publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
-        self.timer_ = self.create_timer(0.5,self.callback)
-        self.get_logger().info("Node started")
+        self.spawn_coordinate_list_ = []
+        self.turtle_pose_ = (0.0, 0.0)
+        self.goalseeking_ = False
+        # self.publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
+        self.main_turtle_pose_subscriber_ = self.create_subscription(Pose, "turtle1/pose", self.pose_callback, 10)
+        self.spawn_coordinate_subscriber_ = self.create_subscription(Vector3, "spawn_coordinates", self.spawn_coordinate_callback, 10)
+        self.get_logger().info("Controller Node started")
 
-    def callback(self):
-        msg = Twist()
-        msg.linear.x = 1.0
-        msg.linear.y = 0.0
-        msg.linear.z = 0.0
-        msg.angular.x = 0.0
-        msg.angular.y = 0.0
-        msg.angular.z = 0.0
-        self.publisher_.publish(msg)
+    def spawn_coordinate_callback(self, msg):
+        self.get_logger().info("LOGGING COORDINATES")
+        self.spawn_coordinate_list_.append([msg.x, msg.y])
+        turtle_coord = [self.turtle_pose_[0], self.turtle_pose_[1]]
+        self.get_logger().info(str(self.spawn_coordinate_list_))
+        if not self.goalseeking_:
+            smallestDist = math.inf
+            targetPoint = None
+            for spawn_coord in self.spawn_coordinate_list_:
+                self.get_logger().info(str(spawn_coord) + " " + str(turtle_coord))
+                currentDist = math.dist(spawn_coord, turtle_coord)
+                if currentDist < smallestDist:
+                    smallestDist = currentDist
+                    targetPoint = spawn_coord
+                    self.get_logger().info("CALCULATING TARGET: " + str(smallestDist) + " " + str(targetPoint))
+            self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
+            
+    def pose_callback(self, msg):
+        self.turtle_pose_ = (msg.x, msg.y, msg.theta, msg.linear_velocity, msg.angular_velocity)
+        # self.get_logger().info("ROBOT POSE")
+        # self.get_logger().info(str(self.turtle_pose_))
 
 def main(args=None):
     rclpy.init(args=args)
