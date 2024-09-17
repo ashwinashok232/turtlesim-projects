@@ -72,30 +72,43 @@ class TurtleControllerNode(Node): #MODIFY
                 if currentDist < smallestDist:
                     smallestDist = currentDist
                     targetPoint = spawn_coord
-                    self.get_logger().info("CALCULATING TARGET: " + str(smallestDist) + " " + str(targetPoint))
+                    # self.get_logger().info("CALCULATING TARGET: " + str(smallestDist) + " " + str(targetPoint))
             self.target_pose_ = targetPoint
             self.goalseeking_ = True
-            self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
+            # self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
             
     def pose_callback(self, msg):
         self.turtle_pose_ = (msg.x, msg.y, msg.theta, msg.linear_velocity, msg.angular_velocity)
-        self.get_logger().info("ROBOT POSE")
-        self.get_logger().info(str(self.turtle_pose_))
+        # self.get_logger().info("ROBOT POSE")
+        # self.get_logger().info(str(self.turtle_pose_))
         self.velocity_callback()
         
     def velocity_callback(self):
-        linear_gain = 0.1
-        angular_gain = 0.5
+        linear_gain = 0.4
+        angular_gain = 0.8
+        goal_tol = 0.1
+
         if self.goalseeking_:
-            while self.target_pose_ != [self.turtle_pose_[0], self.turtle_pose_[1]]:
-                polar_distance_error = math.dist(self.target_pose_, [self.turtle_pose_[0], self.turtle_pose_[1]])
-                polar_angle_error = math.atan2(self.target_pose_[0]-self.turtle_pose_[0], self.target_pose_[1]-self.turtle_pose_[1]) - self.turtle_pose_[2]
-                # self.get_logger().info(f"DISTANCE ERROR: {polar_distance_error}   ANGLE ERROR: {polar_angle_error}")
+            polar_distance_error = math.dist(self.target_pose_, [self.turtle_pose_[0], self.turtle_pose_[1]])
+            polar_angle_error = convertPrincipalToFullCircleAngle(math.atan2(self.target_pose_[1]-self.turtle_pose_[1], 
+                                           self.target_pose_[0]-self.turtle_pose_[0])) - convertPrincipalToFullCircleAngle(self.turtle_pose_[2])
+            if (polar_distance_error <= 0.1):
                 msg = Twist()
-                msg.linear.x = linear_gain*polar_distance_error
-                msg.angular.z = angular_gain*polar_angle_error
+                msg.linear.x = 0.0
+                msg.angular.z = 0.0
                 msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y = 0.0, 0.0, 0.0, 0.0
                 self.velocity_publisher_.publish(msg)
+                self.spawn_coordinate_list_.remove(self.target_pose_)
+                self.goalseeking_ = False
+                self.get_logger().info('################## GOAL REACHED ##################')
+            # while self.target_pose_ != [self.turtle_pose_[0], self.turtle_pose_[1]]:
+            # self.get_logger().info(f"DISTANCE ERROR: {polar_distance_error}   ANGLE ERROR: {polar_angle_error}")
+            # self.get_logger().info(f"{math.atan2(self.target_pose_[1]-self.turtle_pose_[1], self.target_pose_[0]-self.turtle_pose_[0])}         {self.turtle_pose_[2]}")
+            msg = Twist()
+            msg.linear.x = linear_gain*polar_distance_error
+            msg.angular.z = angular_gain*polar_angle_error
+            msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y = 0.0, 0.0, 0.0, 0.0
+            self.velocity_publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -106,3 +119,6 @@ def main(args=None):
  
 if __name__ == "__main__":
     main()
+
+def convertPrincipalToFullCircleAngle(principalAngle):
+    return (principalAngle + 2*math.pi) % (2*math.pi)
