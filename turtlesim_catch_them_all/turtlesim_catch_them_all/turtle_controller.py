@@ -50,9 +50,12 @@ class TurtleControllerNode(Node): #MODIFY
         self.spawn_coordinate_list_ = []
         self.turtle_pose_ = (0.0, 0.0)
         self.goalseeking_ = False
+        self.target_pose_ = None
         # self.publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
         self.main_turtle_pose_subscriber_ = self.create_subscription(Pose, "turtle1/pose", self.pose_callback, 10)
         self.spawn_coordinate_subscriber_ = self.create_subscription(Vector3, "spawn_coordinates", self.spawn_coordinate_callback, 10)
+        self.velocity_publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
+        # self.timer_ = self.create_timer(0.1,self.velocity_callback)
         self.get_logger().info("Controller Node started")
 
     def spawn_coordinate_callback(self, msg):
@@ -70,12 +73,29 @@ class TurtleControllerNode(Node): #MODIFY
                     smallestDist = currentDist
                     targetPoint = spawn_coord
                     self.get_logger().info("CALCULATING TARGET: " + str(smallestDist) + " " + str(targetPoint))
+            self.target_pose_ = targetPoint
+            self.goalseeking_ = True
             self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
             
     def pose_callback(self, msg):
         self.turtle_pose_ = (msg.x, msg.y, msg.theta, msg.linear_velocity, msg.angular_velocity)
-        # self.get_logger().info("ROBOT POSE")
-        # self.get_logger().info(str(self.turtle_pose_))
+        self.get_logger().info("ROBOT POSE")
+        self.get_logger().info(str(self.turtle_pose_))
+        self.velocity_callback()
+        
+    def velocity_callback(self):
+        linear_gain = 0.1
+        angular_gain = 0.5
+        if self.goalseeking_:
+            while self.target_pose_ != [self.turtle_pose_[0], self.turtle_pose_[1]]:
+                polar_distance_error = math.dist(self.target_pose_, [self.turtle_pose_[0], self.turtle_pose_[1]])
+                polar_angle_error = math.atan2(self.target_pose_[0]-self.turtle_pose_[0], self.target_pose_[1]-self.turtle_pose_[1]) - self.turtle_pose_[2]
+                # self.get_logger().info(f"DISTANCE ERROR: {polar_distance_error}   ANGLE ERROR: {polar_angle_error}")
+                msg = Twist()
+                msg.linear.x = linear_gain*polar_distance_error
+                msg.angular.z = angular_gain*polar_angle_error
+                msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y = 0.0, 0.0, 0.0, 0.0
+                self.velocity_publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
