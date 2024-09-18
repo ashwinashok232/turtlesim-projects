@@ -1,40 +1,3 @@
-'''
-To do when creating a publisher:
-
- 1. Add imported libraries to package.xml
-    <depend>package_name</depend>
-    
- 2. Update setup.py
-    
-    entry_points={
-        'console_scripts': [
-            "py_node = <package_name>.<node_executable_name>:main"
-        ],
-    }
-    Note: node_executable_name does not need to be the same as the name of the node in the python script
- 
- 3. Make file executable
-    
-    chmod +x <python_filename>.py
-
- 4. Source and build the package:
-    
-    $ source ~/.bashrc
-    $ colcon build --packages-select <package_name> --symlink-install
-
-** IMPORTANT: colcon build must be done in the ~/ros2_ws directory, not in any subdirectory (eg: ~/ros2_ws/src)
-----------------
-
-To run the publisher:
-
-    ros2 run <package_name> <node_name_in_python>
-
-Some optional arguments you can add:
-
-    - Renaming node at runtime (eg: if you run the same node twice, you should name them differently to avoid conflicts):
-        ros2 run <package_name> <node_name_in_python> --ros-args --remap __node:=<custom node name>
-'''
-
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
@@ -45,7 +8,7 @@ import math
 from turtlesim.srv import Kill
 from functools import partial
  
-class TurtleControllerNode(Node): #MODIFY
+class TurtleControllerNode(Node):
     def __init__(self):
         super().__init__("turtle_controller")
         self.spawn_coordinate_list_ = []
@@ -53,32 +16,35 @@ class TurtleControllerNode(Node): #MODIFY
         self.goalseeking_ = False
         self.target_pose_ = None
         self.target_name_ = None
-        # self.publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
         self.main_turtle_pose_subscriber_ = self.create_subscription(Pose, "turtle1/pose", self.pose_callback, 10)
         self.spawn_coordinate_subscriber_ = self.create_subscription(SpawnInfo, "spawn_coordinates", self.spawn_coordinate_callback, 10)
         self.velocity_publisher_ = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
-        # self.timer_ = self.create_timer(0.1,self.velocity_callback)
         self.get_logger().info("Controller Node started")
 
     def spawn_coordinate_callback(self, msg):
+        self.update_spawn_coordinate_list(msg)
+        self.find_closest_spawn_point()
+
+            
+    def update_spawn_coordinate_list(self, msg):
         self.get_logger().info("LOGGING COORDINATES")
-        # self.spawn_coordinate_list_.append([msg.x, msg.y])
         self.spawn_coordinate_list_.append({"x": msg.x_coord, "y": msg.y_coord, "name": msg.name})
-        turtle_coord = [self.turtle_pose_[0], self.turtle_pose_[1]]
         self.get_logger().info(str(self.spawn_coordinate_list_))
+        
+    def find_closest_spawn_point(self):
+        turtle_coord = [
+            self.turtle_pose_[0], 
+            self.turtle_pose_[1]
+            ]
         if not self.goalseeking_:
-            smallestDist = math.inf
-            targetPoint = None
-            spawnName = None
+            smallestDist, targetPoint, spawnName = math.inf, None, None
             for spawn_dict in self.spawn_coordinate_list_:
                 spawn_coord = [spawn_dict["x"], spawn_dict["y"]]
-                self.get_logger().info(str(spawn_coord) + " " + str(turtle_coord))
                 currentDist = math.dist(spawn_coord, turtle_coord)
                 if currentDist < smallestDist:
                     smallestDist = currentDist
                     targetPoint = spawn_coord
                     spawnName = spawn_dict["name"]
-                    # self.get_logger().info("CALCULATING TARGET: " + str(smallestDist) + " " + str(targetPoint))
             self.target_pose_ = targetPoint
             self.target_name_ = spawnName
             self.goalseeking_ = True
