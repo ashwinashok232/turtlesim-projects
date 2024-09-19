@@ -16,6 +16,7 @@ class SpawnTurtleNode(Node):
         self.spawnCoordinateList_ = []
         self.spawn_count_ = 0
         self.create_timer(3.0,self.turtle_spawn_timer_callback)
+        # self.call_spawn_service(3.0, 6.5, 0.0, "Spawn0")
         self.publisher_ = self.create_publisher(SpawnInfo, "spawn_coordinates", 10)
 
     def call_spawn_service(self, x, y, theta, name):        

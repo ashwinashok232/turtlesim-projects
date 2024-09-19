@@ -48,23 +48,25 @@ class TurtleControllerNode(Node):
             self.target_pose_ = targetPoint
             self.target_name_ = spawnName
             self.goalseeking_ = True
-            # self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
+            self.get_logger().info("FINAL CLOSEST POINT:" + str(smallestDist) + " " + str(targetPoint))
             
     def pose_callback(self, msg):
         self.turtle_pose_ = (msg.x, msg.y, msg.theta, msg.linear_velocity, msg.angular_velocity)
         # self.get_logger().info("ROBOT POSE")
         # self.get_logger().info(str(self.turtle_pose_))
-        self.velocity_callback()
+        # self.velocity_callback()
+        self.velocity_callback_simple()
         
     def velocity_callback(self):
-        linear_gain = 1.0
-        angular_gain = 1.5
-        goal_tol = 0.1
+        linear_gain = 0.5
+        angular_gain = 0.5
+        goal_tol = 0.3
 
         if self.goalseeking_:
             polar_distance_error = math.dist(self.target_pose_, [self.turtle_pose_[0], self.turtle_pose_[1]])
             polar_angle_error = convertPrincipalToFullCircleAngle(math.atan2(self.target_pose_[1]-self.turtle_pose_[1], 
                                            self.target_pose_[0]-self.turtle_pose_[0])) - convertPrincipalToFullCircleAngle(self.turtle_pose_[2])
+            self.get_logger().info(str(polar_distance_error) + "    " + str(polar_angle_error))
             if (polar_distance_error <= goal_tol):
                 msg = Twist()
                 msg.linear.x = 0.0
@@ -84,7 +86,34 @@ class TurtleControllerNode(Node):
                 msg.angular.z = angular_gain*polar_angle_error
                 msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y = 0.0, 0.0, 0.0, 0.0
                 self.velocity_publisher_.publish(msg)
+        else:
+            msg = Twist()
+            msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            self.velocity_publisher_.publish(msg)
             
+    def velocity_callback_simple(self):
+        if self.goalseeking_:
+            msg = Twist()
+            msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z = 0.0, 0.0, 0.0, 0.0, 0.0, 0.5
+            self.velocity_publisher_.publish(msg)
+            distance_to_target = math.dist(self.target_pose_, [self.turtle_pose_[0], self.turtle_pose_[1]])
+            angle_to_target = math.atan2(self.target_pose_[1]-self.turtle_pose_[1], self.target_pose_[0]-self.turtle_pose_[0])
+            self.get_logger().info(str(distance_to_target))
+            if (distance_to_target <= 0.1):
+                msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+                self.velocity_publisher_.publish(msg)
+                self.goalseeking_ = False
+                self.call_kill_service(self.target_name_)
+                self.spawn_coordinate_list_.remove({"x": self.target_pose_[0], "y": self.target_pose_[1], "name": self.target_name_})
+                self.get_logger().info('################## GOAL REACHED ##################')
+            else:
+                if abs(angle_to_target-self.turtle_pose_[2]) <= 0.1:
+                    msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z = 1.0, 0.0, 0.0, 0.0, 0.0, 0.0
+                    self.velocity_publisher_.publish(msg)
+                else:
+                    msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z = 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+                    self.velocity_publisher_.publish(msg)
+    
     def call_kill_service(self, name):        
         client = self.create_client(Kill, "kill")
         while not client.wait_for_service(1.0):
